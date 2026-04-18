@@ -48,12 +48,35 @@ echo "🚀 Bootstrapping project: $PROJECT_NAME"
 rm -rf .git
 git init -b main > /dev/null
 
-# 2. 替換 PROJECT_NAME_PLACEHOLDER（escape sed replacement metachars: \ & /）
+# 2. 用 child-project 骨架覆寫 README.md（原本描述 template 本身）
+cat > README.md <<EOF
+# $PROJECT_NAME
+
+TODO: 一段話描述你的專案。
+
+## Quick Start
+
+\`\`\`bash
+make build && make up && make terminal
+\`\`\`
+
+進 container 後：
+
+\`\`\`bash
+source /venv/bin/activate
+uv sync --active
+\`\`\`
+
+## Docs
+- [CLAUDE.md](./CLAUDE.md) — coding conventions、architecture、git workflow
+EOF
+echo "  ✔ rewrote README.md"
+
+# 3. 替換 PROJECT_NAME_PLACEHOLDER（escape sed replacement metachars: \ & /）
 ESCAPED_NAME=$(printf '%s' "$PROJECT_NAME" | sed -e 's/[\\/&]/\\&/g')
 FILES_TO_PATCH=(
     "pyproject.toml"
     ".devcontainer/devcontainer.json"
-    "README.md"
     "CLAUDE.md"
 )
 for f in "${FILES_TO_PATCH[@]}"; do
@@ -64,7 +87,7 @@ for f in "${FILES_TO_PATCH[@]}"; do
     fi
 done
 
-# 3. 建立 .env
+# 4. 建立 .env
 if [[ ! -f .env ]]; then
     cp .env.example .env
     echo "  ✔ created .env (請編輯 GIT_NAME / GIT_EMAIL)"

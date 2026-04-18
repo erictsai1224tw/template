@@ -1,0 +1,14 @@
+.git
+.venv
+__pycache__
+*.pyc
+node_modules
+.pytest_cache
+.ruff_cache
+.mypy_cache
+.env
+*.log
+worktrees/
+.worktrees/
+.claude/
+.gemini/

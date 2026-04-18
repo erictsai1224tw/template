@@ -1,0 +1,87 @@
+# === Python ===
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+.venv/
+ENV/
+.tox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.egg-info/
+
+# === Jupyter ===
+.ipynb_checkpoints
+*/.ipynb_checkpoints/*
+
+# === Tooling caches ===
+.pytest_cache/
+.ruff_cache/
+.hypothesis/
+.mypy_cache/
+
+# === Editor / IDE ===
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# === Secrets / env ===
+.env
+*.env
+!.env.example
+*.secret
+*.key
+*.pem
+secrets/
+
+# === AI tooling local state ===
+.claude/
+.gemini/
+gha-creds-*.json
+
+# === Logs ===
+*.log
+
+# === Git worktrees ===
+.worktrees/
+worktrees/
+
+# === OS tmp ===
+~*
+*.swp
+*.swo
+
+# ─── 選用範例（按需取消註解）─────────────────────
+# === 資料集 ===
+# DATASET*/
+# *.csv
+# *.tsv
+# *.jsonl
+# *.parquet
+# *.h5
+# *.npz
+# *.npy
+
+# === 模型權重 ===
+# models/
+# checkpoints/
+# *.pth
+# *.pt
+# *.onnx
+
+# === 訓練輸出 ===
+# results/
+# outputs/
+# runs/
+# wandb/
+# mlflow/

@@ -1,8 +1,8 @@
 # template
 
-一個通用、最小的 Docker 開發環境 template，clone 下來跑一行就能開始新專案。
+一個通用的 Docker GPU/ML 開發環境 template，clone 下來跑一行就能開始新專案。
 
-預裝 Python 3.12（uv）、Node 22、`gh`、Claude Code、Gemini CLI、Copilot CLI、`ruff`、`pytest`。支援 git worktree 平行開發流程。
+預裝 CUDA 12.4、PyTorch、Python 3.12（uv）、Node 22、`gh`、Claude Code、Gemini CLI、Copilot CLI、`ruff`、`pytest`。支援 git worktree 平行開發流程。
 
 ---
 
@@ -103,14 +103,17 @@ my-project/
 
 | 類別 | 內容 |
 |------|------|
-| **Base image** | `ubuntu:22.04` |
+| **Base image** | `nvidia/cuda:12.4.1-devel-ubuntu22.04` |
+| **GPU** | `runtime: nvidia` + `NVIDIA_VISIBLE_DEVICES=all`（`nvidia-smi` 可直接用）|
 | **Python** | 3.12 via [uv](https://github.com/astral-sh/uv) |
+| **ML base** | `torch`, `torchvision`（預裝在 main deps）|
 | **Node** | 22.x（給 AI CLI 用） |
 | **CLI tools** | `gh`, Claude Code, Gemini CLI, Copilot CLI |
 | **Lint / format** | `ruff` |
 | **Test** | `pytest` |
 | **CI** | GitHub Actions（`ruff check` + `ruff format --check` + `pytest`）|
 | **AI 文件** | `CLAUDE.md`, `AGENTS.md`, `GEMINI.md`（single source of truth = `CLAUDE.md`） |
+| **HF cache** | container 內 `HF_HOME=/cache/huggingface`；可於 `docker-compose.yml` 取消註解掛到 host |
 
 ---
 
@@ -129,13 +132,22 @@ Bootstrap 完之後，你通常會想：
 ## FAQ
 
 **Q: `docker: command not found` 怎麼辦？**
-A: 先裝 Docker 跟 Docker Compose v2。template 本身不包含 Docker 安裝。
+A: 先裝 Docker 跟 Docker Compose v2，還有 [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html)（讓 Docker 能看到 GPU）。Template 本身不包含這些。
 
-**Q: 我不用 Python，只要 Docker 環境怎麼辦？**
-A: 刪掉 `pyproject.toml` 跟 Dockerfile 裡 uv / venv 相關的 layer 就行。template 保留是因為多數新專案都會用 Python。
+**Q: `could not select device driver "" with capabilities: [[gpu]]`？**
+A: NVIDIA Container Toolkit 沒裝或沒啟用。安裝後重啟 Docker daemon。
+
+**Q: 我的機器沒有 GPU（或暫時不想跑 GPU）怎麼辦？**
+A: 把 `docker-compose.yml` 的 `runtime: nvidia` 那行註解掉、`NVIDIA_VISIBLE_DEVICES` 拿掉；或改 base image 為 `ubuntu:22.04` 並從 `pyproject.toml` 拿掉 `torch` / `torchvision`。
+
+**Q: 我不用 Python / 只要 Docker 環境？**
+A: 刪掉 `pyproject.toml` 跟 Dockerfile 裡 uv / venv 相關的 layer 就行。
 
 **Q: 可以不用 AI CLI tools 嗎？**
 A: 可以。Dockerfile 裡最後一段 `npm install -g @google/gemini-cli @github/copilot` 跟 `curl claude.ai/install.sh` 都刪掉即可。
+
+**Q: Image 太大（CUDA + torch 快 15GB）？**
+A: 這是 GPU template 的必然代價。非 ML 專案建議走上面那題改 `ubuntu:22.04`。
 
 ---
 

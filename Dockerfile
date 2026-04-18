@@ -1,7 +1,7 @@
 # ==========================================
-# 通用開發環境：Ubuntu 22.04 + uv + Node + AI CLI tools
+# 通用 ML 開發環境：CUDA 12.4 + uv + Node + AI CLI tools + pytorch
 # ==========================================
-FROM ubuntu:22.04
+FROM nvidia/cuda:12.4.1-devel-ubuntu22.04
 
 # 1. 安裝 uv (Python 套件管理工具)
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
@@ -14,10 +14,11 @@ ENV PYTHONUNBUFFERED=1 \
     UV_PYTHON=3.12 \
     VIRTUAL_ENV=/venv \
     UV_PROJECT_ENVIRONMENT=/venv \
+    HF_HOME=/cache/huggingface \
     PYTHONPATH=/app:$PYTHONPATH \
     PATH="/home/docker/.npm-global/bin:/home/docker/.claude/local/bin:/venv/bin:/home/docker/.local/bin:$PATH"
 
-# 3. 安裝系統依賴 + Node.js 22
+# 3. 安裝系統依賴 + ML 常用動態函式庫 + Node.js 22
 RUN apt-get update && apt-get install -y \
     software-properties-common \
     git \
@@ -28,6 +29,12 @@ RUN apt-get update && apt-get install -y \
     pkg-config \
     vim \
     tmux \
+    libgl1-mesa-glx \
+    libglib2.0-0 \
+    libsm6 \
+    libxext6 \
+    libxrender-dev \
+    libgomp1 \
     && curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
     && apt-get install -y nodejs \
     && rm -rf /var/lib/apt/lists/*
@@ -46,8 +53,8 @@ RUN mkdir -p -m 755 /etc/apt/keyrings \
 # 5. 建立使用者與目錄
 RUN groupadd -g 1000 docker && \
     useradd -u 1000 -g 1000 -m -s /bin/bash docker && \
-    mkdir -p /app /venv /home/docker/.npm-global && \
-    chown -R docker:docker /app /venv /home/docker
+    mkdir -p /app /venv /cache/huggingface /home/docker/.npm-global && \
+    chown -R docker:docker /app /venv /cache /home/docker
 
 WORKDIR /app
 USER docker

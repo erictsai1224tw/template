@@ -3,7 +3,10 @@ name = "PROJECT_NAME_PLACEHOLDER"
 version = "0.1.0"
 description = "TODO"
 requires-python = ">=3.12"
-dependencies = []
+dependencies = [
+    "torch",
+    "torchvision",
+]
 
 [dependency-groups]
 dev = [

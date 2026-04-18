@@ -3,8 +3,23 @@
 # 用法: ./bootstrap.sh [project-name]
 set -euo pipefail
 
-# Resolve script dir and cd there (CWD safety — 不會影響 caller 的其他 repo)
-SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+# Resolve real script path (follow symlinks) — portable POSIX-ish (no readlink -f)
+_resolve_script_path() {
+    local src="$1"
+    while [ -L "$src" ]; do
+        local dir
+        dir="$(cd -P -- "$(dirname -- "$src")" && pwd)"
+        src="$(readlink -- "$src")"
+        case "$src" in
+            /*) ;;                      # absolute, use as-is
+            *)  src="$dir/$src" ;;      # relative, prepend dir
+        esac
+    done
+    printf '%s' "$src"
+}
+
+SCRIPT_PATH="$(_resolve_script_path "${BASH_SOURCE[0]}")"
+SCRIPT_DIR="$(cd -P -- "$(dirname -- "$SCRIPT_PATH")" && pwd)"
 cd "$SCRIPT_DIR"
 
 PROJECT_NAME="${1:-}"
@@ -17,9 +32,11 @@ if [[ -z "$PROJECT_NAME" ]]; then
     exit 1
 fi
 
-# Preflight: git config
-if ! git config --global user.name > /dev/null 2>&1 || ! git config --global user.email > /dev/null 2>&1; then
-    echo "ERROR: git user.name / user.email 尚未設定。請先跑：" >&2
+# Preflight: git config (檢查 key 存在且非空)
+GIT_USER_NAME="$(git config --global user.name 2>/dev/null || true)"
+GIT_USER_EMAIL="$(git config --global user.email 2>/dev/null || true)"
+if [[ -z "$GIT_USER_NAME" || -z "$GIT_USER_EMAIL" ]]; then
+    echo "ERROR: git user.name / user.email 尚未設定（或為空）。請先跑：" >&2
     echo "  git config --global user.name  \"Your Name\"" >&2
     echo "  git config --global user.email \"you@example.com\"" >&2
     exit 1
@@ -31,8 +48,8 @@ echo "🚀 Bootstrapping project: $PROJECT_NAME"
 rm -rf .git
 git init -b main > /dev/null
 
-# 2. 替換 PROJECT_NAME_PLACEHOLDER（escape 掉 sed replacement metachars: \ & /）
-ESCAPED_NAME=$(printf '%s' "$PROJECT_NAME" | sed -e 's/[\/&]/\\&/g')
+# 2. 替換 PROJECT_NAME_PLACEHOLDER（escape sed replacement metachars: \ & /）
+ESCAPED_NAME=$(printf '%s' "$PROJECT_NAME" | sed -e 's/[\\/&]/\\&/g')
 FILES_TO_PATCH=(
     "pyproject.toml"
     ".devcontainer/devcontainer.json"
@@ -57,8 +74,7 @@ fi
 git add .
 git commit -m "chore: bootstrap $PROJECT_NAME from template" > /dev/null
 
-# 5. Self-delete
-SCRIPT_PATH="$0"
+# 5. Self-delete (the resolved real script, not a symlink)
 rm -- "$SCRIPT_PATH"
 
 echo ""

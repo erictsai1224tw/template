@@ -3,6 +3,10 @@
 # 用法: ./bootstrap.sh [project-name]
 set -euo pipefail
 
+# Resolve script dir and cd there (CWD safety — 不會影響 caller 的其他 repo)
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+cd "$SCRIPT_DIR"
+
 PROJECT_NAME="${1:-}"
 if [[ -z "$PROJECT_NAME" ]]; then
     read -rp "Project name: " PROJECT_NAME
@@ -13,13 +17,22 @@ if [[ -z "$PROJECT_NAME" ]]; then
     exit 1
 fi
 
+# Preflight: git config
+if ! git config --global user.name > /dev/null 2>&1 || ! git config --global user.email > /dev/null 2>&1; then
+    echo "ERROR: git user.name / user.email 尚未設定。請先跑：" >&2
+    echo "  git config --global user.name  \"Your Name\"" >&2
+    echo "  git config --global user.email \"you@example.com\"" >&2
+    exit 1
+fi
+
 echo "🚀 Bootstrapping project: $PROJECT_NAME"
 
 # 1. 重置 git history
 rm -rf .git
 git init -b main > /dev/null
 
-# 2. 替換 PROJECT_NAME_PLACEHOLDER
+# 2. 替換 PROJECT_NAME_PLACEHOLDER（escape 掉 sed replacement metachars: \ & /）
+ESCAPED_NAME=$(printf '%s' "$PROJECT_NAME" | sed -e 's/[\/&]/\\&/g')
 FILES_TO_PATCH=(
     "pyproject.toml"
     ".devcontainer/devcontainer.json"
@@ -28,7 +41,7 @@ FILES_TO_PATCH=(
 )
 for f in "${FILES_TO_PATCH[@]}"; do
     if [[ -f "$f" ]] && grep -q "PROJECT_NAME_PLACEHOLDER" "$f"; then
-        sed -i.bak "s/PROJECT_NAME_PLACEHOLDER/${PROJECT_NAME}/g" "$f"
+        sed -i.bak "s/PROJECT_NAME_PLACEHOLDER/${ESCAPED_NAME}/g" "$f"
         rm -f "${f}.bak"
         echo "  ✔ patched $f"
     fi

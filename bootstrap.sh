@@ -32,21 +32,25 @@ if [[ -z "$PROJECT_NAME" ]]; then
     exit 1
 fi
 
-# Preflight: git config (檢查 key 存在且非空)
-GIT_USER_NAME="$(git config --global user.name 2>/dev/null || true)"
-GIT_USER_EMAIL="$(git config --global user.email 2>/dev/null || true)"
-if [[ -z "$GIT_USER_NAME" || -z "$GIT_USER_EMAIL" ]]; then
-    echo "ERROR: git user.name / user.email 尚未設定（或為空）。請先跑：" >&2
-    echo "  git config --global user.name  \"Your Name\"" >&2
-    echo "  git config --global user.email \"you@example.com\"" >&2
+# Git identity（可用 env 傳入，否則 prompt）— 只寫到 local repo，不碰 global
+if [[ -z "${GIT_NAME:-}" ]]; then
+    read -rp "Git user.name (僅此專案 local): " GIT_NAME
+fi
+if [[ -z "${GIT_EMAIL:-}" ]]; then
+    read -rp "Git user.email (僅此專案 local): " GIT_EMAIL
+fi
+if [[ -z "$GIT_NAME" || -z "$GIT_EMAIL" ]]; then
+    echo "ERROR: git name / email 不能為空" >&2
     exit 1
 fi
 
 echo "🚀 Bootstrapping project: $PROJECT_NAME"
 
-# 1. 重置 git history
+# 1. 重置 git history（並設定 local identity，不碰 global）
 rm -rf .git
 git init -b main > /dev/null
+git config user.name "$GIT_NAME"
+git config user.email "$GIT_EMAIL"
 
 # 2. 用 child-project 骨架覆寫 README.md（原本描述 template 本身）
 cat > README.md <<EOF
@@ -87,11 +91,16 @@ for f in "${FILES_TO_PATCH[@]}"; do
     fi
 done
 
-# 4. 建立 .env
+# 4. 建立 .env（把 GIT_NAME / GIT_EMAIL 直接填進去，container 內會沿用同一組 identity）
 if [[ ! -f .env ]]; then
     cp .env.example .env
-    echo "  ✔ created .env (請編輯 GIT_NAME / GIT_EMAIL)"
 fi
+ESCAPED_NAME_ENV=$(printf '%s' "$GIT_NAME"  | sed -e 's/[\\/&]/\\&/g')
+ESCAPED_EMAIL_ENV=$(printf '%s' "$GIT_EMAIL" | sed -e 's/[\\/&]/\\&/g')
+sed -i.bak "s/^GIT_NAME=.*/GIT_NAME=${ESCAPED_NAME_ENV}/"   .env
+sed -i.bak "s/^GIT_EMAIL=.*/GIT_EMAIL=${ESCAPED_EMAIL_ENV}/" .env
+rm -f .env.bak
+echo "  ✔ wrote .env with GIT_NAME / GIT_EMAIL"
 
 # 4. Initial commit
 git add .
@@ -103,6 +112,4 @@ rm -- "$SCRIPT_PATH"
 echo ""
 echo "✅ Bootstrap 完成！"
 echo ""
-echo "下一步："
-echo "  1. 編輯 .env，填入 GIT_NAME / GIT_EMAIL"
-echo "  2. make build && make up && make terminal"
+echo "下一步: make build && make up && make terminal"

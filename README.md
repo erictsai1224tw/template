@@ -8,6 +8,8 @@
 
 ## 一鍵啟動
 
+互動式（會 prompt 問你 git name / email）：
+
 ```bash
 git clone https://github.com/erictsai1224tw/template.git my-project \
   && cd my-project \
@@ -15,13 +17,17 @@ git clone https://github.com/erictsai1224tw/template.git my-project \
   && make build && make up && make terminal
 ```
 
+或一次塞完（完全不互動）：
+
+```bash
+git clone https://github.com/erictsai1224tw/template.git my-project && cd my-project \
+  && GIT_NAME="Your Name" GIT_EMAIL="you@example.com" ./bootstrap.sh my-project \
+  && make build && make up && make terminal
+```
+
 跑完你就坐在新 project 的 container terminal 裡，可以開工。
 
-> ⚠️ 第一次使用前，host 機器必須先設定 git：
-> ```bash
-> git config --global user.name  "Your Name"
-> git config --global user.email "you@example.com"
-> ```
+> ℹ️ Git identity 只會寫進**這個專案 local 的 `.git/config`**，不會動到你的 `~/.gitconfig`（global）。同一組 name/email 也會寫進 `.env`，container 內的 git 會沿用。
 
 ---
 
@@ -29,18 +35,20 @@ git clone https://github.com/erictsai1224tw/template.git my-project \
 
 ### `./bootstrap.sh <project-name>` — 一次性初始化
 
-| 參數 | 必填 | 說明 |
-|------|------|------|
-| `<project-name>` | 是 | 新專案名稱。會被寫進 `pyproject.toml`、`CLAUDE.md`、`.devcontainer/devcontainer.json` |
+| 參數 / 環境變數 | 必填 | 說明 |
+|---|---|---|
+| `<project-name>` (arg) | 是 | 新專案名稱，會寫進 `pyproject.toml`、`CLAUDE.md`、`.devcontainer/devcontainer.json` |
+| `GIT_NAME` (env) | 是 | 這個專案的 git user.name；沒給會 prompt |
+| `GIT_EMAIL` (env) | 是 | 這個專案的 git user.email；沒給會 prompt |
 
 做的事：
 1. 重置 git history（刪原本的 `.git`，重新 `git init`）
-2. 用 `sed` 把各檔案裡的 `PROJECT_NAME_PLACEHOLDER` 換成你的專案名
-3. 從 `.env.example` 複製出 `.env`
-4. 建立一個 initial commit
-5. 把 `bootstrap.sh` 自己刪掉（只跑一次）
-
-執行後**記得編輯 `.env`** 填入你的 `GIT_NAME` / `GIT_EMAIL`，這兩個會在 container 裡自動設定 git identity。
+2. 把 `GIT_NAME` / `GIT_EMAIL` 設進**本地** `.git/config`（不碰 global `~/.gitconfig`）
+3. 用 child-project 骨架覆寫 `README.md`
+4. `sed` 替換各檔案裡的 `PROJECT_NAME_PLACEHOLDER`
+5. 從 `.env.example` 複製出 `.env`，並把 `GIT_NAME` / `GIT_EMAIL` 填進去
+6. 建立 initial commit
+7. 把 `bootstrap.sh` 自己刪掉（只跑一次）
 
 ### `make <target>` — 日常開發
 

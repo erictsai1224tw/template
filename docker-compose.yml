@@ -1,0 +1,21 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    env_file: .env
+    volumes:
+      - .:/app
+      - ${HOME}/.ssh:/home/docker/.ssh:ro
+    environment:
+      - TZ=Asia/Taipei
+      - GIT_NAME=${GIT_NAME:-}
+      - GIT_EMAIL=${GIT_EMAIL:-}
+      - COLORTERM=truecolor
+      - UV_PROJECT_ENVIRONMENT=/venv
+      - VIRTUAL_ENV=/venv
+    # ports:
+    #   - "8000"      # 依專案需求取消註解
+    #   - "8888"      # 例如 Jupyter
+    stdin_open: true
+    tty: true
